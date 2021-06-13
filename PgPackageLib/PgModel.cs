@@ -13,40 +13,29 @@ namespace PgPackageLib
     {
         public static bool autoSave = false;
         // TODO make these dicts const or somethninng
-        //  protected static bool tableSet = false;
-        //  public static void SetTableDone() { tableSet = true; }
         protected static Dictionary<Type, Table> cachedTables { get; set; } = new Dictionary<Type, Table> { };
         public static void SetTable(Type tableClass, Table table)
         {
-            //  if (tableSet) { throw new Exception($"table already set for {tableClass.Name}"); }
             cachedTables[tableClass] = table;
         }
 
-        //     protected static bool columnsSet = false;
-        //     public static void SetColumnsDone() { columnsSet = true; }
         protected static Dictionary<Type, Dictionary<string, Column>> cachedColumns { get; set; } = new Dictionary<Type, Dictionary<string, Column>> { };
         public static void SetColumns(Type tableClass, Column[] columns)
         {
             cachedColumns[tableClass] = columns.ToDictionary(col => col.property.Name, col => col);
         }
 
-        //    protected static bool hasOneSet = false;
-        //    public static void SetHasOneDone() { hasOneSet = true; }
         protected static Dictionary<Type, HasOne[]> cachedHasOneRelations { get; set; } = new Dictionary<Type, HasOne[]> { };
         public static void AddHasOneRelation(Type tableClass, HasOne hasOne)
         {
-            //    if (hasOneSet) { throw new Exception($"hasone already initialized for {tableClass.Name}"); }
             List<HasOne> hasOneList = cachedHasOneRelations.ContainsKey(tableClass) ? cachedHasOneRelations[tableClass].ToList() : new List<HasOne> { };
             hasOneList.Add(hasOne);
             cachedHasOneRelations[tableClass] = hasOneList.ToArray();
         }
 
-        //     protected static bool hasManySet = false;
-        //     public static void SetHasManyDone() { hasManySet = true; }
         protected static Dictionary<Type, HasMany[]> cachedHasManyRelations { get; set; } = new Dictionary<Type, HasMany[]> { };
         public static void AddHasManyRelation(Type tableClass, HasMany hasMany)
         {
-            //      if (hasManySet) { throw new Exception($"hasmany already initialized for {tableClass.Name}"); }
             List<HasMany> hasManyList = cachedHasManyRelations.ContainsKey(tableClass) ? cachedHasManyRelations[tableClass].ToList() : new List<HasMany> { };
             hasManyList.Add(hasMany);
             cachedHasManyRelations[tableClass] = hasManyList.ToArray();
@@ -60,11 +49,7 @@ namespace PgPackageLib
 
         public static Table GetTable(Type tableClass)
         {
-            //     if (tableSet) 
-            {
-                return cachedTables[tableClass];
-            }
-            //     throw new Exception($"table ({typeof(ChildClass).Name}) not initialized");
+            return cachedTables[tableClass];         
         }
         public static Table GetTable()
         {
@@ -77,12 +62,16 @@ namespace PgPackageLib
 
         public static Column[] GetColumns(Type tableClass)
         {
-            //if (columnsSet)
+            try
             {
                 return cachedColumns[tableClass].Values.ToArray();
             }
-            //throw new Exception($"columns not initialized for class {typeof(ChildClass).Name}");
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                throw new Exception($"{tableClass.Name} does not seem to be a valid PgModel Table, the class may be missing the [Table] attribute or may have not initialized properly");
+            }
         }
+        
         public static Column[] GetColumns()
         {
             return GetColumns(typeof(ChildClass));
@@ -90,12 +79,8 @@ namespace PgPackageLib
 
         public static HasOne[] GetHasOneRelations(Type tableClass)
         {
-            //            if (hasOneSet) 
-            {
-                if (cachedHasOneRelations.ContainsKey(tableClass)) { return cachedHasOneRelations[tableClass]; }
-                return default;
-            }
-            //          throw new Exception($"hasone relations not initialized for class ({typeof(ChildClass).Name})");
+            if (cachedHasOneRelations.ContainsKey(tableClass)) { return cachedHasOneRelations[tableClass]; }
+            return default;
         }
         public static HasOne[] GetHasOneRelations()
         {
@@ -104,18 +89,13 @@ namespace PgPackageLib
 
         public static HasMany[] GetHasManyRelations(Type tableClass)
         {
-            //            if (hasManySet) 
-            {
-                if (cachedHasManyRelations.ContainsKey(tableClass)) { return cachedHasManyRelations[tableClass]; }
-                return default;
-            }
-            //          throw new Exception($"hasmany relations not initialized or no hasone relations present for class ({typeof(ChildClass).Name})");
+            if (cachedHasManyRelations.ContainsKey(tableClass)) { return cachedHasManyRelations[tableClass]; }
+            return default;
         }
         public static HasMany[] GetHasManyRelations()
         {
             return GetHasManyRelations(typeof(ChildClass));
         }
-
 
         public static string GetTableName(Type type)
         {
@@ -127,7 +107,6 @@ namespace PgPackageLib
         {
             return GetTableName(typeof(ChildClass));
         }
-
 
         public static Column GetColumn(PropertyInfo property)
         {
@@ -153,9 +132,7 @@ namespace PgPackageLib
                 if (type == "SERIAL PRIMARY KEY")
                 {
                     commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{GetTableName()}'::regclass::oid AND conname = '{constraintName}') THEN " +
-                                    //        $"ALTER TABLE {GetTableName()} ADD COLUMN IF NOT EXISTS {field.Name} {type}; " +
                                     $"ALTER TABLE {GetTableName()} ADD COLUMN IF NOT EXISTS {column.dbColumnName} {type}; " +
-                                     //$"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} PRIMARY KEY (id);" +
                                      "END IF; END; $$";
                 }
                 else
@@ -198,7 +175,6 @@ namespace PgPackageLib
                                            $"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} UNIQUE ({columnName}); " +
                                             "END IF; END; $$;";
                     constraintsAndIndexes.Add(commandString);
-                    //constraintsAndIndexes.Add($"ALTER TABLE {GetTableName()} ADD CONSTRAINT {name} UNIQUE ({field.Name});");
                 }
 
                 if (column.NotNull)
@@ -208,22 +184,16 @@ namespace PgPackageLib
                                            $"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} CHECK({columnName} IS NOT NULL); " +
                                             "END IF; END; $$;";
                     constraintsAndIndexes.Add(commandString);
-                    //  $"ALTER TABLE {GetTableName()} ALTER COLUMN {rowName} SET NOT NULL;" +
-                    //constraintsAndIndexes.Add($"ALTER TABLE {GetTableName()} ALTER COLUMN {rowName} SET NOT NULL;");
                 }
                 if (column.ForeignKeyTable != null)
                 {
                     string constraintName = $"{GetTableName()}_{columnName}_foreignkey";
-                    //              const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
-                    string foreignTableName = GetTableName(column.ForeignKeyTable); //      (string)      row.ForeignKeyTable.GetMethod("GetTableName", flags).Invoke(null, null);
+                    string foreignTableName = GetTableName(column.ForeignKeyTable);
                     string foreignTableFieldName = GetColumns(column.ForeignKeyTable).Single(col => col.property.Name == column.ForeignKeyPropertyName).dbColumnName;
-                    //column.for
-                    //column.ForeignKeyPropertyName != null ? GetOtherClassColumnName(column.ForeignKeyTable, column.ForeignKeyPropertyName) : "id";
                     string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{GetTableName()}'::regclass::oid AND conname = '{constraintName}') THEN " +
                     $"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} FOREIGN KEY ({columnName}) REFERENCES {foreignTableName} ({foreignTableFieldName});" +
                     "END IF; END; $$;";
                     constraintsAndIndexes.Add(commandString);
-                    // constraintsAndIndexes.Add($"ALTER TABLE {GetTableName()} ADD CONSTRAINT {name} FOREIGN KEY ({rowName}) REFERENCES {foreignTableName} ({foreignTableFieldName});");
                 }
             });
             if (constraintsAndIndexes.Count < 1) { return; }
@@ -239,7 +209,6 @@ namespace PgPackageLib
                 type.GetMethod("AddConstraintsAndIndexes", flags).Invoke(null, null);
             }
         }
-
 
 
         public static void DropTable()
@@ -259,9 +228,6 @@ namespace PgPackageLib
             
             }
         }
-
-
-
 
 
         private object GetValue(string propertyName)
@@ -312,18 +278,6 @@ namespace PgPackageLib
                                        .Limit(1)
                                        .Execute<ChildClass>().FirstOrDefault();
         }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         private string GetRelationCacheKey(Type type, string relationMethod, Type relationType, string relationName) { return $"{relationMethod}-{type.Name}-{relationType.Name}-{relationName}"; }
@@ -388,9 +342,6 @@ namespace PgPackageLib
             this.HasOne<RelationTableClass>(relationName, true);
         }
 
-
-
-
         public static HasOne GetHasOne(Type callingClass, Type relationTargetClass, string relationName = null)
         {
             try { return GetHasOneRelations(callingClass).Single(hasOne => hasOne.RelationTargetTable == relationTargetClass && hasOne.RelationName == relationName); }
@@ -410,8 +361,6 @@ namespace PgPackageLib
         {
             return GetHasMany(typeof(ChildClass), relationTargetClass, relationName);
         }
-
-
 
         public List<RelationTableClass> HasMany<RelationTableClass>(bool refresh = false) { return HasMany<RelationTableClass>(null, refresh); }
         public List<RelationTableClass> HasMany<RelationTableClass>(string relationName, bool refresh = false)
@@ -462,16 +411,13 @@ namespace PgPackageLib
         }
 
 
-
         public void Add<RelationTableClass>(RelationTableClass newInstance, string relationName = null)
         {
-            // TODO should this throw an exception or auto save?
             if (this.id == 0)
             {
                 if (autoSave) { this.Save(); }
                 else { throw new Exception("instance has no id set, it has not been saved to the database, set PgModelBase.autoSave to true to implicitly save in these cases"); }
             }
-
 
             const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance;
             Type relationTableType = typeof(RelationTableClass);

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace PgPackageLib
 {
-    class PgQuery
+    public class PgQuery
     {
         // ////////////////////////////////////////
         string queryMethod;
@@ -192,6 +192,7 @@ namespace PgPackageLib
         }
         private void handleWhere()
         {
+            if (whereList == null) { return; }
             commandString = $"{commandString} WHERE";
             List<string> whereStringList = new List<string> { };
             for (int i = 0; i < whereList.Count; i++)

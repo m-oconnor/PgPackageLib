@@ -9,32 +9,28 @@ using System.Reflection;
 
 namespace PgPackageLib
 {
-    class Psql
+    public class Psql
     {
         private static string dbConnectionString;
-        //static NpgsqlConnection conn;
 
-        public static void Initialize(string host, string user, string pass, string database, int poolMin=1, int poolMax=1, bool usePool=true)
+        public static void Initialize(Type type, string host, string user, string pass, string database, int poolMin=1, int poolMax=1, bool usePool=true)
         {
-            Initialize($"Host={host};Username={user};Password={pass};Database={database};Minimum Pool Size={poolMin};Maximum Pool Size={poolMax};Pooling={usePool}");
+            Initialize(type, $"Host={host};Username={user};Password={pass};Database={database};Minimum Pool Size={poolMin};Maximum Pool Size={poolMax};Pooling={usePool}");
         }
 
         //Server=127.0.0.1;Port=5432;Database=myDataBase;Userid=myUsername;Password=myPassword;Protocol=3;Pooling=true;MinPoolSize=1;MaxPoolSize=20;ConnectionLifeTime=15;
-        public static void Initialize(string dbConfigString) //"Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;";
+        public static void Initialize(Type type, string dbConfigString) //"Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;";
         {
             dbConnectionString = dbConfigString;
-
-            //conn = new NpgsqlConnection(dbConfigString);
-
-            PrepareAttributes();
+            PrepareAttributes(type);
             //PgModel<Object>.DropAllTables();
             //PgModel<Object>.CreateAllTables();
             //PgModel<Object>.AddAllConstraintsAndIndexes();
         }
 
-        private static void PrepareAttributes()
+        private static void PrepareAttributes(Type projectType)
         {
-            IEnumerable<Type> types = typeof(PgModel<>).Assembly.GetTypes().Where(type =>
+            IEnumerable<Type> types = projectType.Assembly.GetTypes().Where(type =>
               type.BaseType != null && type.BaseType.IsGenericType &&
               type.BaseType.GetGenericTypeDefinition() == typeof(PgModel<>));
 
@@ -169,8 +165,6 @@ namespace PgPackageLib
 
         public static string GetPostgresType(string Type)
         {
-
-            //Sumo.GetSerializableFields()[0].PropertyType.Name
             if (Type == "String")
             {
                 return "TEXT";
@@ -191,9 +185,7 @@ namespace PgPackageLib
             throw new Exception("unexpected type");
         }
 
-
         public static void ExecuteCommand(string CommandString, object[] vals = default)
-        //public static NpgsqlDataReader ExecuteCommand(string CommandString, object[] vals = default)
         {
             using (NpgsqlConnection conn = new NpgsqlConnection(dbConnectionString))
             { 
@@ -202,7 +194,6 @@ namespace PgPackageLib
                 {
                     for (int i = 0; i < vals.Length; i++)
                     {
-                        //command.Parameters.AddWithRange();
                         command.Parameters.AddWithValue($"@{i}", vals[i]);
                     }
                 }
