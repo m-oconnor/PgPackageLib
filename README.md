@@ -60,11 +60,65 @@ Index/UniqueIndex/Unique/NotNull: create the given index/constraint.
 ForeignKeyTable: add a foreign key constraint for this property for the table associated with the given class.
 ForeignKeyPropertyName: define what field of the given foreign key table should be used for the constraint.
 
-### Relations
+## Relations
 There are also tags that can be used to define relations
-
+# [HasOne]
+Place this below the column tag for the derired property.
 ```C#
-
+[Table]
+publc ClassName : PgModel<ClassName>
+{
+[Column]
+[HasOne(typeof(OtherClass))]
+public int otherClassId Name { get; set; }
+}
+```
+Defining this relation will give you access to two new methods.
+# HasOne
+```C#
+ClassName className = ClassName.Find(1);
+OtherClass otherClass = className.HasOne<OtherClass>();
+```
+These are results cached, you can force an updated query by passing true;
+```C#
+OtherClass otherClass = className.HasOne<OtherClass>(true);
+```
+# Set
+```C#
+className.Set<OtherClass>(otherClassInstance);
+```
+Invoking Set will update the HasOne cached result.
+You can also define a more direct protery name:
+```C#
+[Column]
+[HasOne(typeof(OtherClass))]
+public int otherClassId { get; set; }
+public OtherClass OtherClass 
+{
+  get { return HasOne<OtherClass>(); }
+  set { Set<OtherClass>(value); }
+}
+...
+ClassName className = ClassName.Find(1);
+OtherClass = className.OtherClass;
 ```
 
+# Advanced
+There are also more advanced options for the HasOne attribute.
+```C#
+[HasOne(RelationName="SomeName"]
+```
+RelationName: if this is defined you must pass this value to both HasOne and Set. This allows you to have multiple relations of the same type.
+```C#
+className.HasOne<OtherClass>("SomeName");
+...
+className.HasOne<OtherClass>("SomeName", true);  // refresh cached result
+...
+className.Set<OtherClass>(otherClassInstance, "SomeName");
+```
 
+```C#
+[HasOne(RelationTargetPropertyName="SomePropertyName")]
+```
+RelationTargetPropertyName: an alternative property to use for your relation, by default it will be expected that the class associated with your relation contains a property named <YourClassName>Id. This allows you to override that and use any existing property.
+  
