@@ -1,5 +1,7 @@
 # PgPackageLib
 An easy to use system for creating database models using postgres and Npgsql
+## Instalation
+There is currently a beta nuget package called PgPackagelibTest
 ## Initialize
 To use the library you must invoke Initialize and pass your database details.
 You must also pass the type of your main program class (this will probably be addressed at some point, this was not an intended requirement)
