@@ -36,7 +36,7 @@ publc ClassName : PgModel<ClassName>
 public string Name { get; set; }
 }
 ```
-You now have access to a database model anmd all of the features/methods present in the library
+You now have access to a database model and all of the features/methods present in the library
 ## PgQuery
 You can perform basic sql commands with your new class
 ```C#
