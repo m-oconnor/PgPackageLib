@@ -181,7 +181,7 @@ public class OtherClass : PgModel<OtherClass>
 public class JoinClass : PgModel<JoinClass>
 {
   [Column] public ClassNameId { get; set; }
-  [Column] public OtherClassId {get; set; }
+  [Column] public OtherClassId { get; set; }
 }  
 ```
 You can also define an alternate join property name:
@@ -198,6 +198,6 @@ public class OtherClass : PgModel<OtherClass>
 public class JoinClass : PgModel<JoinClass>
 {
   [Column] public RedId { get; set; }
-  [Column] public BlueId {get; set; }
+  [Column] public BlueId { get; set; }
 }  
 ```
