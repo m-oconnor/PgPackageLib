@@ -48,7 +48,7 @@ PgQuery.Select<OtherClass>().Join<ClassName, OtherClass>("OtherClassId", "Id").W
 ```
 You can also update or insert.
 
-#Advanced attributes
+# Advanced attributes
 The attribute tags have more advanced features as well.
 ### [Table]
 ```C#
