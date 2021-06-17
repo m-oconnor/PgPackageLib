@@ -1,5 +1,20 @@
 # PgPackageLib
 An easy to use system for creating database models using postgres and Npgsql
+## Initialize
+To use the library you must invoke Initialize and pass your database details.
+You must also pass the type of your main program class (this will probably be addressed at some point, this was not an intended requirement)
+```C#
+Psql.Initialize(typeof(Program), "Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;");
+```
+You can also create tables, drop tables and create indexes and restraints, but these are not finalized yet and must be called in an ugly way for now
+```C#
+ClassName.CreateTable();
+ClassName.AddConstraintsAndIndexes();
+ClassName.DropTable();
+```
+This works now, but it will be updated to be more usable.
+
+
 ## PgModel
 Define a class
 ```C#
@@ -121,4 +136,12 @@ className.Set<OtherClass>(otherClassInstance, "SomeName");
 [HasOne(RelationTargetPropertyName="SomePropertyName")]
 ```
 RelationTargetPropertyName: an alternative property to use for your relation, by default it will be expected that the class associated with your relation contains a property named <YourClassName>Id. This allows you to override that and use any existing property.
+  
+# [HasMany]
+Place this below a Table attribute tag to define a HasMany relation
+```C#
+[HasMany(typeof(OtherClass))]
+[Table]
+publc ClassName : PgModel<ClassName>
+```
   
