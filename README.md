@@ -44,7 +44,7 @@ PgQuery.Select<ClassName>().Where("id", 3).Limit(1).Execute<ClassName>();
 ```
 You can also perform more complex queries.
 ```C#
-PgQuery.Select<OtherClass>().Join<ClassName, OtherClass>("OtherClassId", "Id").Where("id", 3).Limit(1).Execute<OtherClass>();
+PgQuery.Select<OtherClass>().Join<ClassName, OtherClass>("OtherClassId", "Id").Where<ClassName>("id", 3).Limit(1).Execute<OtherClass>();
 ```
 You can also update or insert.
 
