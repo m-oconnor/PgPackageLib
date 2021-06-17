@@ -144,4 +144,58 @@ Place this below a Table attribute tag to define a HasMany relation
 [Table]
 publc ClassName : PgModel<ClassName>
 ```
-  
+This gives your access to two additional methods
+# HasMany
+```C#
+className.HasMany<OtherClass>();
+className.HasMany<OtherClass>(true);  // refresh cache
+```
+# Add
+```C#
+className.Add<OtherClass>(otherClassInstance);
+```
+# Advanced
+```C#
+[HasMany(typeof(OtherClass), RelationName="SomeName")]
+```
+RelationName: This works the same way as the HasOne RelationName option.
+```C#
+[HasMany(typeof(OtherClass), OnPropertyName="SomePropertyName", RelationTargetPropertyName="SomeRelationPropertyName")]
+```
+OnPropertyName: The name of the property on *this* class that you want associated with the relation (by default this will be Id).
+RelationTargetPropertyName: The name of the property of the *other* class that you want associated with the relation (by default this will be <ThisClassName>Id).
+# Many to many relations
+You can also create many to many relations, this requires both relation classes to exist with the proper attribute, along with a third "join" class.
+```C#
+[Table]
+[HasMany(typeof(OtherClass), JoinTable=typeof(JoinClass))]
+public class ClassName : PgModel<ClassName>
+...  
+[Table]
+[HasMany(typeof(ClassName), JoinTable=typeof(JoinClass))
+public class OtherClass : PgModel<OtherClass>
+...
+[Table]
+public class JoinClass : PgModel<JoinClass>
+{
+  [Column] public ClassNameId { get; set; }
+  [Column] public OtherClassId {get; set; }
+}  
+```
+You can also define an alternate join property name:
+```C#
+[Table]
+[HasMany(typeof(OtherClass), JoinTable=typeof(JoinClass), JoinTablePropertyName="RedId")]
+public class ClassName : PgModel<ClassName>
+...  
+[Table]
+[HasMany(typeof(ClassName), JoinTable=typeof(JoinClass), JoinTablePropertyName="BlueId")
+public class OtherClass : PgModel<OtherClass>
+...
+[Table]
+public class JoinClass : PgModel<JoinClass>
+{
+  [Column] public RedId { get; set; }
+  [Column] public BlueId {get; set; }
+}  
+```
