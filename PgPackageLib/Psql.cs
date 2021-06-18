@@ -181,6 +181,14 @@ namespace PgPackageLib
             {
                 return "DOUBLE PRECISION";
             }
+            else if (Type == "DateTime")
+            {
+                return "TIMESTAMP";
+            }
+            else if (Type == "Boolean")
+            {
+                return "BOOLEAN";
+            }
 
             throw new Exception("unexpected type");
         }
