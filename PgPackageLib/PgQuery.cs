@@ -251,7 +251,7 @@ namespace PgPackageLib
         {
             if (this.queryMethod == "INSERT" || this.queryMethod == "UPDATE") { commandString = $"{commandString} RETURNING {this.queryClassTableName}.*"; }
         }
-        private List<Table> handleQuery<Table>()
+        private IEnumerable<Table> handleQuery<Table>()
         {
             NpgsqlCommand command = Psql.GetCommand(commandString);
             for (int i = 0; i < commandValuesList.Count; i++)
@@ -281,7 +281,7 @@ namespace PgPackageLib
             }
             result.Close();
             command.Connection.Close();
-            return data.Cast<Table>().ToList();
+            return data.Cast<Table>();
         }
     
 
@@ -316,7 +316,7 @@ namespace PgPackageLib
             return handleQuery<Table>();
         }
 
-
+        // /////////////////////////////////////////////
         public static void EnsureTablesExist()
         {
             foreach (Table table in PgModelBase.GetAllTables())
@@ -348,8 +348,6 @@ namespace PgPackageLib
                 }
             }
         }
-
-
         public static void EnsureConstraintsAndIndexesExist()
         {
             foreach (Table table in PgModelBase.GetAllTables())
@@ -411,20 +409,5 @@ namespace PgPackageLib
                 Psql.ExecuteCommand(commandsString);
             }
         }
-        
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 }

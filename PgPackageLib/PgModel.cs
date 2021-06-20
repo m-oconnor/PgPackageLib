@@ -22,11 +22,6 @@ namespace PgPackageLib
             return cachedTables.Values.ToArray();
         }
 
-
-        
-
-
-
         protected static Dictionary<Type, Dictionary<string, Column>> cachedColumns { get; set; } = new Dictionary<Type, Dictionary<string, Column>> { };
         public static void SetColumns(Type tableClass, Column[] columns)
         {
@@ -48,10 +43,6 @@ namespace PgPackageLib
             hasManyList.Add(hasMany);
             cachedHasManyRelations[tableClass] = hasManyList.ToArray();
         }
-
-
-
-
 
     }
     public class PgModel<ChildClass> : PgModelBase where ChildClass : new()
@@ -125,18 +116,12 @@ namespace PgPackageLib
             return cachedColumns[type][propertyName];
         }
 
-
- 
-
-
-
         public static void DropTable()
         {
             string commandString = $"DROP TABLE IF EXISTS {GetTableName()} CASCADE;";
             Psql.ExecuteCommand(commandString);
             
         }
-
 
         public static void DropAllTables()
         {
@@ -147,7 +132,6 @@ namespace PgPackageLib
             
             }
         }
-
 
         private object GetValue(string propertyName)
         {

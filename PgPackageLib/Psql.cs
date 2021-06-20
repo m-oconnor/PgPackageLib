@@ -22,11 +22,7 @@ namespace PgPackageLib
             dbConnectionString = dbConfigString;
             namespaceTypes = types;
             PrepareAttributes(namespaceTypes);
-            //PgModel<Object>.DropAllTables();
-            //PgModel<Object>.CreateAllTables();
-            //PgModel<Object>.AddAllConstraintsAndIndexes();
         }
-
 
         public static IEnumerable<Type> GetAllPgModelTypes()
         {
@@ -40,7 +36,6 @@ namespace PgPackageLib
             }
             return types;
         }
-
 
         private static void PrepareAttributes(Type[] projectTypes)
         {
