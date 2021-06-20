@@ -10,8 +10,8 @@ Psql.Initialize("Host=localhost;Username=postgres;Password=password;Database=pos
 ```
 You can also create tables, drop tables and create indexes and restraints, but these are not finalized yet and must be called in an ugly way for now
 ```C#
-ClassName.CreateTable();
-ClassName.AddConstraintsAndIndexes();
+PgQuery.EnsureTablesExist();
+PgQuery.EnsureConstraintsAndIndexesExist();
 ClassName.DropTable();
 ```
 This works now, but it will be updated to be more usable.
