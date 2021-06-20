@@ -62,6 +62,11 @@ namespace PgPackageLib
             hasOneList.Add(hasOne);
             cachedHasOneRelations[tableClass] = hasOneList.ToArray();
         }
+        public static HasOne[] GetHasOneRelations(Type tableClass)
+        {
+            if (cachedHasOneRelations.ContainsKey(tableClass)) { return cachedHasOneRelations[tableClass]; }
+            return default;
+        }
 
 
 
@@ -71,6 +76,11 @@ namespace PgPackageLib
             List<HasMany> hasManyList = cachedHasManyRelations.ContainsKey(tableClass) ? cachedHasManyRelations[tableClass].ToList() : new List<HasMany> { };
             hasManyList.Add(hasMany);
             cachedHasManyRelations[tableClass] = hasManyList.ToArray();
+        }
+        public static HasMany[] GetHasManyRelations(Type tableClass)
+        {
+            if (cachedHasManyRelations.ContainsKey(tableClass)) { return cachedHasManyRelations[tableClass]; }
+            return default;
         }
     }
     public class PgModel<ChildClass> : PgModel where ChildClass : new()
@@ -90,21 +100,13 @@ namespace PgPackageLib
         {
             return GetColumns(typeof(ChildClass));
         }
-        public static HasOne[] GetHasOneRelations(Type tableClass)
-        {
-            if (cachedHasOneRelations.ContainsKey(tableClass)) { return cachedHasOneRelations[tableClass]; }
-            return default;
-        }
+
         public static HasOne[] GetHasOneRelations()
         {
             return GetHasOneRelations(typeof(ChildClass));
         }
 
-        public static HasMany[] GetHasManyRelations(Type tableClass)
-        {
-            if (cachedHasManyRelations.ContainsKey(tableClass)) { return cachedHasManyRelations[tableClass]; }
-            return default;
-        }
+
         public static HasMany[] GetHasManyRelations()
         {
             return GetHasManyRelations(typeof(ChildClass));

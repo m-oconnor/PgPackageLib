@@ -102,7 +102,7 @@ namespace PgPackageLib
                     string onPropertyName = hasMany.OnPropertyName != null ? hasMany.OnPropertyName : "id";
                     PropertyInfo onProperty = type.GetProperty(onPropertyName);
                     if (onProperty == null) { throw new Exception($"invalid OnPropertyName ({onPropertyName}) for hasmany relation on {type.Name}"); }
-                    Column onColumn = PgModel<Object>.GetColumns(type).Single(col => col.property == onProperty);
+                    Column onColumn = PgModel.GetColumns(type).Single(col => col.property == onProperty);
                     hasMany.onColumn = onColumn;
                     PgModel.AddHasManyRelation(type, hasMany);
                 }
@@ -110,20 +110,20 @@ namespace PgPackageLib
             }
 
             // iterate a second time to make sure all of the columns are seeded before we add the more complicated has many stuff
-            foreach (Table table in PgModel<Object>.GetAllTables())
+            foreach (Table table in PgModel.GetAllTables())
             {
                 Type type = table.type;
-                HasOne[] hasOnes = PgModel<Object>.GetHasOneRelations(type);
+                HasOne[] hasOnes = PgModel.GetHasOneRelations(type);
                 if (hasOnes != null)
                 {
                     foreach (HasOne hasOne in hasOnes)
                     {
                         string relationTargetPropertyName = hasOne.RelationTargetPropertyName != null ? hasOne.RelationTargetPropertyName : "id";
-                        Column relationTargetColumn = PgModel<Object>.GetColumns(hasOne.RelationTargetTable).Single(col => col.property.Name == relationTargetPropertyName);
+                        Column relationTargetColumn = PgModel.GetColumns(hasOne.RelationTargetTable).Single(col => col.property.Name == relationTargetPropertyName);
                         hasOne.relationTargetColumn = relationTargetColumn;
                     }
                 }
-                HasMany[] hasManys = PgModel<Object>.GetHasManyRelations(type);
+                HasMany[] hasManys = PgModel.GetHasManyRelations(type);
                 if (hasManys != null)
                 {
                     foreach (HasMany hasMany in hasManys)
@@ -136,7 +136,7 @@ namespace PgPackageLib
                             if (relationProperty == null) { throw new Exception($"HasMany.RelationTargetPropertyName ({relationPropertyName}) is not present on '{relationType.Name}'"); }
                             if (relationProperty.GetCustomAttribute<Column>() == null) { throw new Exception($"HasMany.RelationTargetPropertyName ({relationPropertyName}) does not have 'Column' Attribute"); }
 
-                            Column relationColumn = PgModel<Object>.GetColumns(relationType).Single(col => col.property == relationProperty);
+                            Column relationColumn = PgModel.GetColumns(relationType).Single(col => col.property == relationProperty);
                             hasMany.relationTargetColumn = relationColumn;
                         }
 
@@ -146,13 +146,13 @@ namespace PgPackageLib
                             PropertyInfo joinProperty = hasMany.JoinTable.GetProperty(joinPropertyName);
                             if (joinProperty == null) { throw new Exception($"HasMany joined table ({hasMany.JoinTable.Name}) missing valid property ({joinPropertyName}) for {type.Name}"); }
 
-                            Column joinColumn = PgModel<Object>.GetColumns(hasMany.JoinTable).Single(col => col.property == joinProperty);
+                            Column joinColumn = PgModel.GetColumns(hasMany.JoinTable).Single(col => col.property == joinProperty);
                             hasMany.joinColumn = joinColumn;
 
                             HasMany joinRelation;
                             try
                             {
-                                joinRelation = PgModel<Object>.GetHasManyRelations(relationType).Single(hm => hm.RelationTargetTable == type && hm.RelationName == hasMany.RelationName);
+                                joinRelation = PgModel.GetHasManyRelations(relationType).Single(hm => hm.RelationTargetTable == type && hm.RelationName == hasMany.RelationName);
                                 hasMany.joinRelation = joinRelation;
                             }
                             //TODO why does this throw 2 different exceptions?

@@ -261,7 +261,7 @@ namespace PgPackageLib
 
             List<object> data = new List<object>();
             
-            Column[] columns = PgModel<object>.GetColumns(this.queryClass);
+            Column[] columns = PgModel.GetColumns(this.queryClass);
             command.Connection.Open();
             NpgsqlDataReader result = command.ExecuteReader();
             while (result.Read())
