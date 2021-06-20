@@ -12,12 +12,20 @@ namespace PgPackageLib
     public class PgModelBase
     {
         public static bool autoSave = false;
-        // TODO make these dicts const or somethninng
         protected static Dictionary<Type, Table> cachedTables { get; set; } = new Dictionary<Type, Table> { };
         public static void SetTable(Type tableClass, Table table)
         {
             cachedTables[tableClass] = table;
         }
+        public static Table[] GetAllTables()
+        {
+            return cachedTables.Values.ToArray();
+        }
+
+
+        
+
+
 
         protected static Dictionary<Type, Dictionary<string, Column>> cachedColumns { get; set; } = new Dictionary<Type, Dictionary<string, Column>> { };
         public static void SetColumns(Type tableClass, Column[] columns)
@@ -41,6 +49,10 @@ namespace PgPackageLib
             cachedHasManyRelations[tableClass] = hasManyList.ToArray();
         }
 
+
+
+
+
     }
     public class PgModel<ChildClass> : PgModelBase where ChildClass : new()
     {
@@ -54,10 +66,6 @@ namespace PgPackageLib
         public static Table GetTable()
         {
             return GetTable(typeof(ChildClass));
-        }
-        public static Table[] GetAllTables()
-        {
-            return cachedTables.Values.ToArray();
         }
 
         public static Column[] GetColumns(Type tableClass)
@@ -118,97 +126,8 @@ namespace PgPackageLib
         }
 
 
-        public static void CreateTable()
-        {
-            string commandString = $"CREATE TABLE IF NOT EXISTS {GetTableName()} ();";
-            Psql.ExecuteCommand(commandString);
+ 
 
-            List<string> tableColumns = new List<string> { };
-            GetColumns().ToList().ForEach(column => {
-                PropertyInfo property = column.property;
-                string type = column.OverrideType != null ? column.OverrideType : Psql.GetPostgresType(property.PropertyType.Name);
-                string constraintName = $"{GetTableName().ToLower()}_pkey";
-
-                if (type == "SERIAL PRIMARY KEY")
-                {
-                    commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{GetTableName()}'::regclass::oid AND conname = '{constraintName}') THEN " +
-                                    $"ALTER TABLE {GetTableName()} ADD COLUMN IF NOT EXISTS {column.dbColumnName} {type}; " +
-                                     "END IF; END; $$";
-                }
-                else
-                {
-                    commandString = $"ALTER TABLE {GetTableName()} ADD COLUMN IF NOT EXISTS {column.dbColumnName} {type};";
-                }
-                Psql.ExecuteCommand(commandString);
-            });
-        }
-        public static void CreateAllTables()
-        {
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
-            foreach (Table table in GetAllTables())
-            {
-                Type type = table.type;
-                type.GetMethod("CreateTable", flags).Invoke(null, null);
-            }
-        }
-
-        public static void AddConstraintsAndIndexes()
-        {
-            List<string> constraintsAndIndexes = new List<string> { };
-            GetColumns().ToList().ForEach(column => {
-                PropertyInfo property = column.property;
-                string columnName = column.dbColumnName;
-                if (column.Index)
-                {
-                    string constraintName = $"{GetTableName()}_{columnName}_index";
-                    constraintsAndIndexes.Add($"CREATE INDEX IF NOT EXISTS {constraintName} ON {GetTableName()} ({columnName});");
-                }
-                if (column.UniqueIndex)
-                {
-                    string constraintName = $"{GetTableName()}_{columnName}_uniqueindex";
-                    constraintsAndIndexes.Add($"CREATE UNIQUE INDEX {constraintName} IF NOT EXISTS ON {GetTableName()} ({columnName});");
-                }
-                if (column.Unique)
-                {
-                    string constraintName = $"{GetTableName()}_{columnName}_unique";
-                    string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{GetTableName()}'::regclass::oid AND conname = '{constraintName}') THEN " +
-                                           $"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} UNIQUE ({columnName}); " +
-                                            "END IF; END; $$;";
-                    constraintsAndIndexes.Add(commandString);
-                }
-
-                if (column.NotNull)
-                {
-                    string constraintName = $"{GetTableName().ToLower()}_{columnName}_notnull";
-                    string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{GetTableName()}'::regclass::oid AND conname = '{constraintName}') THEN " +
-                                           $"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} CHECK({columnName} IS NOT NULL); " +
-                                            "END IF; END; $$;";
-                    constraintsAndIndexes.Add(commandString);
-                }
-                if (column.ForeignKeyTable != null)
-                {
-                    string constraintName = $"{GetTableName()}_{columnName}_foreignkey";
-                    string foreignTableName = GetTableName(column.ForeignKeyTable);
-                    string foreignTableFieldName = GetColumns(column.ForeignKeyTable).Single(col => col.property.Name == column.ForeignKeyPropertyName).dbColumnName;
-                    string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{GetTableName()}'::regclass::oid AND conname = '{constraintName}') THEN " +
-                    $"ALTER TABLE {GetTableName()} ADD CONSTRAINT {constraintName} FOREIGN KEY ({columnName}) REFERENCES {foreignTableName} ({foreignTableFieldName});" +
-                    "END IF; END; $$;";
-                    constraintsAndIndexes.Add(commandString);
-                }
-            });
-            if (constraintsAndIndexes.Count < 1) { return; }
-            string commandsString = String.Join(";", constraintsAndIndexes);
-            Psql.ExecuteCommand(commandsString);            
-        }
-        public static void AddAllConstraintsAndIndexes()
-        {
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
-            foreach (Table table in GetAllTables())
-            {
-                Type type = table.type;
-                type.GetMethod("AddConstraintsAndIndexes", flags).Invoke(null, null);
-            }
-        }
 
 
         public static void DropTable()
@@ -266,7 +185,7 @@ namespace PgPackageLib
             this.id = ((PgModel<ChildClass>)result).id;
         }
 
-        public static List<ChildClass> FindAll(int[] queryIds)
+        public static IEnumerable<ChildClass> FindAll(int[] queryIds)
         {
             return Select<ChildClass>()
                    .Where("id", queryIds.Cast<object>().ToArray())
@@ -362,8 +281,8 @@ namespace PgPackageLib
             return GetHasMany(typeof(ChildClass), relationTargetClass, relationName);
         }
 
-        public List<RelationTableClass> HasMany<RelationTableClass>(bool refresh = false) { return HasMany<RelationTableClass>(null, refresh); }
-        public List<RelationTableClass> HasMany<RelationTableClass>(string relationName, bool refresh = false)
+        public IEnumerable<RelationTableClass> HasMany<RelationTableClass>(bool refresh = false) { return HasMany<RelationTableClass>(null, refresh); }
+        public IEnumerable<RelationTableClass> HasMany<RelationTableClass>(string relationName, bool refresh = false)
         {
             if (this.id == 0)
             {
@@ -404,7 +323,7 @@ namespace PgPackageLib
                 query = query.Where(joinTableType, joinColumn.dbColumnName, onValue);
             }
 
-            List<RelationTableClass> result = query.Execute<RelationTableClass>();
+            IEnumerable<RelationTableClass> result = query.Execute<RelationTableClass>();
             this.cachedRelationResults[cacheKey] = result;
 
             return result;

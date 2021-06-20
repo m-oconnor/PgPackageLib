@@ -287,8 +287,8 @@ namespace PgPackageLib
 
 
         // //////////////////////////////////////////
-        public List<object> Execute() { return Execute<object>(); }
-        public List<Table> Execute<Table>()
+        public IEnumerable<object> Execute() { return Execute<object>(); }
+        public IEnumerable<Table> Execute<Table>()
         {
             commandString = "";
             commandValueCount = 0;
@@ -315,5 +315,116 @@ namespace PgPackageLib
 
             return handleQuery<Table>();
         }
+
+
+        public static void EnsureTablesExist()
+        {
+            foreach (Table table in PgModelBase.GetAllTables())
+            {
+                Type type = table.type;
+                string tableName = (String)type.GetMethod("GetTableName").Invoke(null, null);
+                string commandString = $"CREATE TABLE IF NOT EXISTS {tableName} ();";
+                Psql.ExecuteCommand(commandString);
+
+                List<string> tableColumns = new List<string> { };
+                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns").Invoke(null, null);
+                foreach (Column column in columns) 
+                {                 
+                    PropertyInfo property = column.property;
+                    string postgresType = column.OverrideType != null ? column.OverrideType : Psql.GetPostgresType(property.PropertyType.Name);
+                    string constraintName = $"{tableName.ToLower()}_pkey";
+
+                    if (postgresType == "SERIAL PRIMARY KEY")
+                    {
+                        commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{tableName}'::regclass::oid AND conname = '{constraintName}') THEN " +
+                                        $"ALTER TABLE {tableName} ADD COLUMN IF NOT EXISTS {column.dbColumnName} {postgresType}; " +
+                                         "END IF; END; $$";
+                    }
+                    else
+                    {
+                        commandString = $"ALTER TABLE {tableName} ADD COLUMN IF NOT EXISTS {column.dbColumnName} {postgresType};";
+                    }
+                    Psql.ExecuteCommand(commandString);
+                }
+            }
+        }
+
+
+        public static void EnsureConstraintsAndIndexesExist()
+        {
+            foreach (Table table in PgModelBase.GetAllTables())
+            {
+                Type type = table.type;
+                string tableName = (String)type.GetMethod("GetTableName").Invoke(null, null);
+                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns").Invoke(null, null);
+
+                List<string> constraintsAndIndexes = new List<string> { };
+
+                foreach (Column column in columns)
+                {
+                    PropertyInfo property = column.property;
+                    string columnName = column.dbColumnName;
+                    if (column.Index)
+                    {
+                        string constraintName = $"{tableName}_{columnName}_index";
+                        constraintsAndIndexes.Add($"CREATE INDEX IF NOT EXISTS {constraintName} ON {tableName} ({columnName});");
+                    }
+                    if (column.UniqueIndex)
+                    {
+                        string constraintName = $"{tableName}_{columnName}_uniqueindex";
+                        constraintsAndIndexes.Add($"CREATE UNIQUE INDEX {constraintName} IF NOT EXISTS ON {tableName} ({columnName});");
+                    }
+                    if (column.Unique)
+                    {
+                        string constraintName = $"{tableName}_{columnName}_unique";
+                        string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{tableName}'::regclass::oid AND conname = '{constraintName}') THEN " +
+                                               $"ALTER TABLE {tableName} ADD CONSTRAINT {constraintName} UNIQUE ({columnName}); " +
+                                                "END IF; END; $$;";
+                        constraintsAndIndexes.Add(commandString);
+                    }
+
+                    if (column.NotNull)
+                    {
+                        string constraintName = $"{tableName.ToLower()}_{columnName}_notnull";
+                        string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{tableName}'::regclass::oid AND conname = '{constraintName}') THEN " +
+                                               $"ALTER TABLE {tableName} ADD CONSTRAINT {constraintName} CHECK({columnName} IS NOT NULL); " +
+                                                "END IF; END; $$;";
+                        constraintsAndIndexes.Add(commandString);
+                    }
+                    if (column.ForeignKeyTable != null)
+                    {
+                        Type foreignType = column.ForeignKeyTable;
+                        string foreignTableName = (String)foreignType.GetMethod("GetTableName").Invoke(null, null);
+
+
+                        string constraintName = $"{tableName}_{columnName}_foreignkey";
+                        //string foreignTableName = GetTableName(column.ForeignKeyTable);
+                        string foreignTableFieldName = PgModel<Object>.GetColumns(column.ForeignKeyTable).Single(col => col.property.Name == column.ForeignKeyPropertyName).dbColumnName;
+                        string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{tableName}'::regclass::oid AND conname = '{constraintName}') THEN " +
+                        $"ALTER TABLE {tableName} ADD CONSTRAINT {constraintName} FOREIGN KEY ({columnName}) REFERENCES {foreignTableName} ({foreignTableFieldName});" +
+                        "END IF; END; $$;";
+                        constraintsAndIndexes.Add(commandString);
+                    }
+                }
+                if (constraintsAndIndexes.Count < 1) { return; }
+                string commandsString = String.Join(";", constraintsAndIndexes);
+                Psql.ExecuteCommand(commandsString);
+            }
+        }
+        
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
     }
 }

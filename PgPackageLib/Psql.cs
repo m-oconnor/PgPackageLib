@@ -12,28 +12,40 @@ namespace PgPackageLib
     public class Psql
     {
         private static string dbConnectionString;
+        private static Type[] namespaceTypes;
 
-        public static void Initialize(Type type, string host, string user, string pass, string database, int poolMin=1, int poolMax=1, bool usePool=true)
-        {
-            Initialize(type, $"Host={host};Username={user};Password={pass};Database={database};Minimum Pool Size={poolMin};Maximum Pool Size={poolMax};Pooling={usePool}");
-        }
-
+       
         //Server=127.0.0.1;Port=5432;Database=myDataBase;Userid=myUsername;Password=myPassword;Protocol=3;Pooling=true;MinPoolSize=1;MaxPoolSize=20;ConnectionLifeTime=15;
-        public static void Initialize(Type type, string dbConfigString) //"Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;";
+        public static void Initialize(string dbConfigString, params Type[] types) //"Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;";
         {
+            if (types.Length == 0) { throw new Exception("Must pass some type"); }
             dbConnectionString = dbConfigString;
-            PrepareAttributes(type);
+            namespaceTypes = types;
+            PrepareAttributes(namespaceTypes);
             //PgModel<Object>.DropAllTables();
             //PgModel<Object>.CreateAllTables();
             //PgModel<Object>.AddAllConstraintsAndIndexes();
         }
 
-        private static void PrepareAttributes(Type projectType)
-        {
-            IEnumerable<Type> types = projectType.Assembly.GetTypes().Where(type =>
-              type.BaseType != null && type.BaseType.IsGenericType &&
-              type.BaseType.GetGenericTypeDefinition() == typeof(PgModel<>));
 
+        public static IEnumerable<Type> GetAllPgModelTypes()
+        {
+            if (namespaceTypes == null) { throw new Exception("Must initialize"); }
+            List<Type> types = new List<Type> { };
+            foreach (Type projectType in namespaceTypes)
+            {
+                types.AddRange(projectType.Assembly.GetTypes().Where(type =>
+                    type.BaseType != null && type.BaseType.IsGenericType &&
+                    type.BaseType.GetGenericTypeDefinition() == typeof(PgModel<>)));
+            }
+            return types;
+        }
+
+
+        private static void PrepareAttributes(Type[] projectTypes)
+        {
+
+            IEnumerable<Type> types = GetAllPgModelTypes();
             foreach (Type type in types)
             {
                 Table table = type.GetCustomAttribute<Table>();
