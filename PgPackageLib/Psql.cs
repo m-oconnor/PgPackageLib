@@ -8,23 +8,28 @@ using System.Threading.Tasks;
 using System.Reflection;
 
 namespace PgPackageLib
-{
+{ 
     public class Psql
     {
         private static string dbConnectionString;
         private static Type[] namespaceTypes;
 
-       
+
         //Server=127.0.0.1;Port=5432;Database=myDataBase;Userid=myUsername;Password=myPassword;Protocol=3;Pooling=true;MinPoolSize=1;MaxPoolSize=20;ConnectionLifeTime=15;
+        /// <summary>
+        /// this must be called to initialize the db connection pool and generate all relations
+        /// </summary>
+        /// <param name="dbConfigString">Host=<host>;Username=<user>;Password=<pass>;Database=<dbName>;Pooling=<true/false>;Minimum Pool Size=<int>;Maximum Pool Size=<int></param>
+        /// <param name="types">pass the type of your projetcs main class</param>
         public static void Initialize(string dbConfigString, params Type[] types) //"Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;";
         {
             if (types.Length == 0) { throw new Exception("Must pass some type"); }
             dbConnectionString = dbConfigString;
             namespaceTypes = types;
-            PrepareAttributes(namespaceTypes);
+            PrepareAttributes();
         }
 
-        public static IEnumerable<Type> GetAllPgModelTypes()
+        private static IEnumerable<Type> GetAllPgModelTypes()
         {
             if (namespaceTypes == null) { throw new Exception("Must initialize"); }
             List<Type> types = new List<Type> { };
@@ -37,7 +42,7 @@ namespace PgPackageLib
             return types;
         }
 
-        private static void PrepareAttributes(Type[] projectTypes)
+        private static void PrepareAttributes()
         {
             IEnumerable<Type> types = GetAllPgModelTypes();
             foreach (Type type in types)
@@ -45,7 +50,7 @@ namespace PgPackageLib
                 Table table = type.GetCustomAttribute<Table>();
                 if (table == null) { continue; }
                 table.type = type;
-                table.dbTableName = table.TableName != null ? table.TableName : type.Name;
+                table.dbTableName = table.TableName ?? type.Name;
                 List<Column> columns = new List<Column> { };
 
                 IEnumerable<HasOne> hasOnes = type.GetCustomAttributes<HasOne>();
@@ -73,7 +78,7 @@ namespace PgPackageLib
                     column.dbColumnName = column.ColumnName != null ? column.ColumnName : property.Name;
                     if (column.ForeignKeyTable != null)
                     {
-                        string foreignKeyPropertyName = column.ForeignKeyPropertyName != null ? column.ForeignKeyPropertyName : "id";
+                        string foreignKeyPropertyName = column.ForeignKeyPropertyName ?? "Id";
                         if (column.ForeignKeyTable.GetProperty(foreignKeyPropertyName) == null)
                         {
                             throw new Exception($"Foreign key property ({column.ForeignKeyTable.Name}.{foreignKeyPropertyName}) does not exist");
@@ -85,7 +90,7 @@ namespace PgPackageLib
                     {
                         column.relation = hasOne;
                         hasOne.column = column;
-                        string relationTargetPropertyName = hasOne.RelationTargetPropertyName != null ? hasOne.RelationTargetPropertyName : "id";
+                        string relationTargetPropertyName = hasOne.RelationTargetPropertyName ?? "Id";
                         PropertyInfo relationTargetProperty = hasOne.RelationTargetTable.GetProperty(relationTargetPropertyName);
                         if (relationTargetProperty == null)
                         {
@@ -99,7 +104,7 @@ namespace PgPackageLib
                 {
                     hasMany.table = table;
                     Type relationType = hasMany.RelationTargetTable;
-                    string onPropertyName = hasMany.OnPropertyName != null ? hasMany.OnPropertyName : "id";
+                    string onPropertyName = hasMany.OnPropertyName ?? "Id";
                     PropertyInfo onProperty = type.GetProperty(onPropertyName);
                     if (onProperty == null) { throw new Exception($"invalid OnPropertyName ({onPropertyName}) for hasmany relation on {type.Name}"); }
                     Column onColumn = PgModel.GetColumns(type).Single(col => col.property == onProperty);
@@ -118,7 +123,7 @@ namespace PgPackageLib
                 {
                     foreach (HasOne hasOne in hasOnes)
                     {
-                        string relationTargetPropertyName = hasOne.RelationTargetPropertyName != null ? hasOne.RelationTargetPropertyName : "id";
+                        string relationTargetPropertyName = hasOne.RelationTargetPropertyName ?? "Id";
                         Column relationTargetColumn = PgModel.GetColumns(hasOne.RelationTargetTable).Single(col => col.property.Name == relationTargetPropertyName);
                         hasOne.relationTargetColumn = relationTargetColumn;
                     }

@@ -4,8 +4,11 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>PgPackageLibTest</PackageId>
-    <Version>0.0.11</Version>
+    <Version>0.0.15</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <RepositoryUrl>https://github.com/m-oconnor/PgPackageLib</RepositoryUrl>
+    <Description>An easy to use package for creating postgres database models using Npgsql.</Description>
+    <PackageLicenseFile></PackageLicenseFile>
   </PropertyGroup>
 
   <ItemGroup>

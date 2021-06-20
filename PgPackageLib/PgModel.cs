@@ -11,6 +11,9 @@ namespace PgPackageLib
 {
     public class PgModel
     {
+        /// <summary>
+        /// set this to true to implicitly save when invoking certain function calls
+        /// </summary>
         public static bool autoSave = false;
         protected static Dictionary<Type, Table> cachedTables { get; set; } = new Dictionary<Type, Table> { };
         public static void SetTable(Type tableClass, Table table)
@@ -27,13 +30,11 @@ namespace PgPackageLib
         }
 
 
-
         public static string GetTableName(Type type)
         {
             Table table = GetTable(type);
             return table.dbTableName;
         }
-
 
 
         protected static Dictionary<Type, Dictionary<string, Column>> cachedColumns { get; set; } = new Dictionary<Type, Dictionary<string, Column>> { };
@@ -82,11 +83,13 @@ namespace PgPackageLib
             if (cachedHasManyRelations.ContainsKey(tableClass)) { return cachedHasManyRelations[tableClass]; }
             return default;
         }
+
+        public void Save() { throw new NotImplementedException(); }
     }
-    public class PgModel<ChildClass> : PgModel where ChildClass : new()
+    public class PgModel<ChildClass> : PgModel where ChildClass : PgModel//new()
     {
         [Column(OverrideType = "SERIAL PRIMARY KEY")]
-        public int id { get; set; }
+        public int Id { get; set; }
 
         public static Table GetTable()
         {
@@ -131,14 +134,14 @@ namespace PgPackageLib
             Psql.ExecuteCommand(commandString);
         }
 
-        public static void DropAllTables()
-        {
-            foreach (Table table in GetAllTables())
-            {
-                string commandString = $"DROP TABLE IF EXISTS {table.dbTableName} CASCADE;";
-                Psql.ExecuteCommand(commandString);
-            }
-        }
+ //       public static void DropAllTables()
+ //       {
+ //           foreach (Table table in GetAllTables())
+ //           {
+ //               string commandString = $"DROP TABLE IF EXISTS {table.dbTableName} CASCADE;";
+ //               Psql.ExecuteCommand(commandString);
+ //           }
+ //       }
 
         private object GetValue(string propertyName)
         {
@@ -149,19 +152,19 @@ namespace PgPackageLib
             return property.GetValue(this);
         }
 
-        public void Save()
+        public new void Save()
         {
             Column[] columns = GetColumns();
             Dictionary<PropertyInfo, Column> dict = new Dictionary<PropertyInfo, Column> { };
             foreach (Column column in columns)
             {
                 PropertyInfo property = column.property;
-                if (property.Name == "id") { continue; }
+                if (property.Name == "Id") { continue; }
                 dict[property] = column;
             }
 
             object result;
-            if (this.id == 0)
+            if (this.Id == 0)
             {
                 result = Insert<ChildClass>(dict.Values.Select(column => column.dbColumnName).ToArray(), dict.Keys.Select(property => property.GetValue(this)).ToArray())
                                                .Execute().FirstOrDefault();
@@ -169,22 +172,22 @@ namespace PgPackageLib
             else
             {
                 result = (Update<ChildClass>(dict.Values.Select(column => column.dbColumnName).ToArray(), dict.Keys.Select(property => property.GetValue(this)).ToArray())
-                                               .Where("id", this.id)
+                                               .Where("Id", this.Id)
                                                .Execute().FirstOrDefault());
             }
 
-            this.id = ((PgModel<ChildClass>)result).id;
+            this.Id = ((PgModel<ChildClass>)result).Id;
         }
 
         public static IEnumerable<ChildClass> FindAll(int[] queryIds)
         {
             return Select<ChildClass>()
-                   .Where("id", queryIds.Cast<object>().ToArray())
+                   .Where("Id", queryIds.Cast<object>().ToArray())
                    .Execute<ChildClass>();
         }
         public static ChildClass Find(int queryId)
         {
-            return Select<ChildClass>().Where("id", queryId)
+            return Select<ChildClass>().Where("Id", queryId)
                                        .Limit(1)
                                        .Execute<ChildClass>().FirstOrDefault();
         }
@@ -194,10 +197,10 @@ namespace PgPackageLib
         private string GetRelationCacheKey(string relationMethod, Type relationType, string relationName) { return GetRelationCacheKey(GetType(), relationMethod, relationType, relationName); }
 
         private Dictionary<string, object> cachedRelationResults = new Dictionary<string, object>() { };
-        public RelationTableClass HasOne<RelationTableClass>(bool refresh = false) { return HasOne<RelationTableClass>(null, refresh); }
-        public RelationTableClass HasOne<RelationTableClass>(string relationName, bool refresh = false)
+        public RelationTableClass HasOne<RelationTableClass>(bool refresh = false) where RelationTableClass : PgModel { return HasOne<RelationTableClass>(null, refresh); }
+        public RelationTableClass HasOne<RelationTableClass>(string relationName, bool refresh = false) where RelationTableClass : PgModel
         {
-            if (this.id == 0)
+            if (this.Id == 0)
             {
                 if (autoSave) { this.Save(); }
                 else { throw new Exception("instance has no id set, it has not been saved to the database, set PgModelBase.autoSave to true to implicitly save in these cases"); }
@@ -228,9 +231,9 @@ namespace PgPackageLib
             return result;
         }
 
-        public void Set<RelationTableClass>(RelationTableClass newInstance, string relationName = null)
+        public void Set<RelationTableClass>(RelationTableClass newInstance, string relationName = null) where RelationTableClass : PgModel
         {
-            if (this.id == 0)
+            if (this.Id == 0)
             {
                 if (autoSave) { this.Save(); }
                 else { throw new Exception("instance has no id set, it has not been saved to the database, set PgModelBase.autoSave to true to implicitly save in these cases"); }
@@ -272,10 +275,10 @@ namespace PgPackageLib
             return GetHasMany(typeof(ChildClass), relationTargetClass, relationName);
         }
 
-        public IEnumerable<RelationTableClass> HasMany<RelationTableClass>(bool refresh = false) { return HasMany<RelationTableClass>(null, refresh); }
-        public IEnumerable<RelationTableClass> HasMany<RelationTableClass>(string relationName, bool refresh = false)
+        public IEnumerable<RelationTableClass> HasMany<RelationTableClass>(bool refresh = false) where RelationTableClass: PgModel { return HasMany<RelationTableClass>(null, refresh); }
+        public IEnumerable<RelationTableClass> HasMany<RelationTableClass>(string relationName, bool refresh = false) where RelationTableClass : PgModel
         {
-            if (this.id == 0)
+            if (this.Id == 0)
             {
                 if (autoSave) { this.Save(); }
                 else { throw new Exception("instance has no id set, it has not been saved to the database, set PgModelBase.autoSave to true to implicitly save in these cases"); }
@@ -321,15 +324,15 @@ namespace PgPackageLib
         }
 
 
-        public void Add<RelationTableClass>(RelationTableClass newInstance, string relationName = null)
+        public void Add<RelationTableClass>(RelationTableClass newInstance, string relationName = null) where RelationTableClass : PgModel
         {
-            if (this.id == 0)
+            if (this.Id == 0)
             {
                 if (autoSave) { this.Save(); }
                 else { throw new Exception("instance has no id set, it has not been saved to the database, set PgModelBase.autoSave to true to implicitly save in these cases"); }
             }
 
-            const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance;
+            //const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance;
             Type relationTableType = typeof(RelationTableClass);
             HasMany hasMany = GetHasMany(relationTableType, relationName);
             Column onColumn = hasMany.onColumn;
@@ -340,7 +343,8 @@ namespace PgPackageLib
                 Column relationColumn = hasMany.relationTargetColumn;
                 PropertyInfo relationProperty = relationColumn.property;
                 relationProperty.SetValue(newInstance, onValue);
-                relationTableType.GetMethod("Save", flags).Invoke(newInstance, null);
+                newInstance.Save();
+                //relationTableType.GetMethod("Save", flags).Invoke(newInstance, null);
 
                 // update the cache here
                 this.HasMany<RelationTableClass>(relationName, true);
@@ -373,12 +377,13 @@ namespace PgPackageLib
                 else
                 {
                     //Insert(joinTableType);
-                    object obj = Activator.CreateInstance(joinTableType);
+                    PgModel obj = (PgModel)Activator.CreateInstance(joinTableType);
                     PropertyInfo joinColumnProperty = joinColumn.property;
                     PropertyInfo relationJoincolumnProperty = relationJoinColumn.property;
                     joinColumnProperty.SetValue(obj, onValue);
                     relationJoincolumnProperty.SetValue(obj, relationOnValue);
-                    joinTableType.GetMethod("Save").Invoke(obj, null);
+                    obj.Save();
+                    //joinTableType.GetMethod("Save").Invoke(obj, null);
                 }
             }
         }
