@@ -321,13 +321,14 @@ namespace PgPackageLib
         {
             foreach (Table table in PgModel.GetAllTables())
             {
+                const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
                 Type type = table.type;
-                string tableName = (String)type.GetMethod("GetTableName").Invoke(null, null);
+                string tableName = (String)type.GetMethod("GetTableName", flags).Invoke(null, null);
                 string commandString = $"CREATE TABLE IF NOT EXISTS {tableName} ();";
                 Psql.ExecuteCommand(commandString);
 
                 List<string> tableColumns = new List<string> { };
-                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns").Invoke(null, null);
+                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns", flags).Invoke(null, null);
                 foreach (Column column in columns) 
                 {                 
                     PropertyInfo property = column.property;
@@ -352,9 +353,10 @@ namespace PgPackageLib
         {
             foreach (Table table in PgModel.GetAllTables())
             {
+                const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
                 Type type = table.type;
-                string tableName = (String)type.GetMethod("GetTableName").Invoke(null, null);
-                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns").Invoke(null, null);
+                string tableName = (String)type.GetMethod("GetTableName", flags).Invoke(null, null);
+                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns", flags).Invoke(null, null);
 
                 List<string> constraintsAndIndexes = new List<string> { };
 
@@ -392,7 +394,7 @@ namespace PgPackageLib
                     if (column.ForeignKeyTable != null)
                     {
                         Type foreignType = column.ForeignKeyTable;
-                        string foreignTableName = (String)foreignType.GetMethod("GetTableName").Invoke(null, null);
+                        string foreignTableName = (String)foreignType.GetMethod("GetTableName", flags).Invoke(null, null);
 
 
                         string constraintName = $"{tableName}_{columnName}_foreignkey";
