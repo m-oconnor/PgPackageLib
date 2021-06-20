@@ -6,7 +6,7 @@ There is currently a beta nuget package called PgPackagelibTest
 To use the library you must invoke Initialize and pass your database details.
 You must also pass the type of your main program class (this will probably be addressed at some point, this was not an intended requirement)
 ```C#
-Psql.Initialize(typeof(Program), "Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;");
+Psql.Initialize("Host=localhost;Username=postgres;Password=password;Database=postgres;Pooling=true;Minimum Pool Size=1;Maximum Pool Size=100;", typeof(Program));
 ```
 You can also create tables, drop tables and create indexes and restraints, but these are not finalized yet and must be called in an ugly way for now
 ```C#
