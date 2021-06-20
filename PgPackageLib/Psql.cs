@@ -39,13 +39,13 @@ namespace PgPackageLib
 
         private static void PrepareAttributes(Type[] projectTypes)
         {
-
             IEnumerable<Type> types = GetAllPgModelTypes();
             foreach (Type type in types)
             {
                 Table table = type.GetCustomAttribute<Table>();
                 if (table == null) { continue; }
                 table.type = type;
+                table.dbTableName = table.TableName != null ? table.TableName : type.Name;
                 List<Column> columns = new List<Column> { };
 
                 IEnumerable<HasOne> hasOnes = type.GetCustomAttributes<HasOne>();

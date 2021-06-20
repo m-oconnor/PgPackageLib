@@ -15,6 +15,7 @@ namespace PgPackageLib
     public class Table : Attribute
     {
         public Type type;
+        public string dbTableName;
         /// <summary>
         /// name of the table associated with this class (default = class name)
         /// </summary>

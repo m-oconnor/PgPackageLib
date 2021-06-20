@@ -22,7 +22,7 @@ namespace PgPackageLib
             PgQuery pgQuery = new PgQuery();
             pgQuery.queryMethod = queryMethodName;
             pgQuery.queryClass = queryTableType;
-            pgQuery.queryClassTableName = PgModel<Object>.GetTableName(queryTableType);
+            pgQuery.queryClassTableName = PgModel.GetTableName(queryTableType);
             pgQuery.queryFields = fields;
             pgQuery.queryValues = values.Select(val => val != null ? val : DBNull.Value).ToArray();
             return pgQuery;
@@ -174,11 +174,11 @@ namespace PgPackageLib
             for (int i = 0; i < this.joinList.Count; i++)
             {
                 Type joinClassA = (Type)joinList[i][0];
-                string joinClassATableName = PgModel<object>.GetTableName(joinClassA);
+                string joinClassATableName = PgModel.GetTableName(joinClassA);
                 string[] joinFieldsA = (string[])joinList[i][1];
 
                 Type joinClassB = (Type)joinList[i][2];
-                string joinClassBTableName = PgModel<object>.GetTableName(joinClassB);
+                string joinClassBTableName = PgModel.GetTableName(joinClassB);
                 string[] joinFieldsB = (string[])joinList[i][3];
                 
                 string joinString = $"JOIN {joinClassATableName} ON";
@@ -203,7 +203,7 @@ namespace PgPackageLib
                 else
                 {
                     Type whereClass = (Type)whereList[i][0];
-                    string whereClassTableName = PgModel<object>.GetTableName(whereClass);
+                    string whereClassTableName = PgModel.GetTableName(whereClass);
                     string[] whereFields = (string[])whereList[i][1];
                     string opp = (string)whereList[i][2];
                     object[] whereValues = (object[])whereList[i][3];
@@ -321,14 +321,13 @@ namespace PgPackageLib
         {
             foreach (Table table in PgModel.GetAllTables())
             {
-                const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
                 Type type = table.type;
-                string tableName = (String)type.GetMethod("GetTableName", flags).Invoke(null, null);
+                string tableName = PgModel.GetTableName(type);
                 string commandString = $"CREATE TABLE IF NOT EXISTS {tableName} ();";
                 Psql.ExecuteCommand(commandString);
 
                 List<string> tableColumns = new List<string> { };
-                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns", flags).Invoke(null, null);
+                IEnumerable<Column> columns = PgModel.GetColumns(type);
                 foreach (Column column in columns) 
                 {                 
                     PropertyInfo property = column.property;
@@ -353,10 +352,9 @@ namespace PgPackageLib
         {
             foreach (Table table in PgModel.GetAllTables())
             {
-                const BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
                 Type type = table.type;
-                string tableName = (String)type.GetMethod("GetTableName", flags).Invoke(null, null);
-                IEnumerable<Column> columns = (IEnumerable<Column>)type.GetMethod("GetColumns", flags).Invoke(null, null);
+                string tableName = PgModel.GetTableName(type);
+                IEnumerable<Column> columns = PgModel.GetColumns(type);
 
                 List<string> constraintsAndIndexes = new List<string> { };
 
@@ -393,13 +391,9 @@ namespace PgPackageLib
                     }
                     if (column.ForeignKeyTable != null)
                     {
-                        Type foreignType = column.ForeignKeyTable;
-                        string foreignTableName = (String)foreignType.GetMethod("GetTableName", flags).Invoke(null, null);
-
-
+                        string foreignTableName = PgModel.GetTableName(column.ForeignKeyTable);
                         string constraintName = $"{tableName}_{columnName}_foreignkey";
-                        //string foreignTableName = GetTableName(column.ForeignKeyTable);
-                        string foreignTableFieldName = PgModel<Object>.GetColumns(column.ForeignKeyTable).Single(col => col.property.Name == column.ForeignKeyPropertyName).dbColumnName;
+                        string foreignTableFieldName = PgModel.GetColumns(column.ForeignKeyTable).Single(col => col.property.Name == column.ForeignKeyPropertyName).dbColumnName;
                         string commandString = $"DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid = '{tableName}'::regclass::oid AND conname = '{constraintName}') THEN " +
                         $"ALTER TABLE {tableName} ADD CONSTRAINT {constraintName} FOREIGN KEY ({columnName}) REFERENCES {foreignTableName} ({foreignTableFieldName});" +
                         "END IF; END; $$;";

@@ -21,44 +21,26 @@ namespace PgPackageLib
         {
             return cachedTables.Values.ToArray();
         }
+        public static Table GetTable(Type tableClass)
+        {
+            return cachedTables[tableClass];
+        }
+
+
+
+        public static string GetTableName(Type type)
+        {
+            Table table = GetTable(type);
+            return table.dbTableName;
+        }
+
+
 
         protected static Dictionary<Type, Dictionary<string, Column>> cachedColumns { get; set; } = new Dictionary<Type, Dictionary<string, Column>> { };
         public static void SetColumns(Type tableClass, Column[] columns)
         {
             cachedColumns[tableClass] = columns.ToDictionary(col => col.property.Name, col => col);
         }
-
-        protected static Dictionary<Type, HasOne[]> cachedHasOneRelations { get; set; } = new Dictionary<Type, HasOne[]> { };
-        public static void AddHasOneRelation(Type tableClass, HasOne hasOne)
-        {
-            List<HasOne> hasOneList = cachedHasOneRelations.ContainsKey(tableClass) ? cachedHasOneRelations[tableClass].ToList() : new List<HasOne> { };
-            hasOneList.Add(hasOne);
-            cachedHasOneRelations[tableClass] = hasOneList.ToArray();
-        }
-
-        protected static Dictionary<Type, HasMany[]> cachedHasManyRelations { get; set; } = new Dictionary<Type, HasMany[]> { };
-        public static void AddHasManyRelation(Type tableClass, HasMany hasMany)
-        {
-            List<HasMany> hasManyList = cachedHasManyRelations.ContainsKey(tableClass) ? cachedHasManyRelations[tableClass].ToList() : new List<HasMany> { };
-            hasManyList.Add(hasMany);
-            cachedHasManyRelations[tableClass] = hasManyList.ToArray();
-        }
-
-    }
-    public class PgModel<ChildClass> : PgModel where ChildClass : new()
-    {
-        [Column(OverrideType = "SERIAL PRIMARY KEY")]
-        public int id { get; set; }
-
-        public static Table GetTable(Type tableClass)
-        {
-            return cachedTables[tableClass];         
-        }
-        public static Table GetTable()
-        {
-            return GetTable(typeof(ChildClass));
-        }
-
         public static Column[] GetColumns(Type tableClass)
         {
             try
@@ -70,12 +52,44 @@ namespace PgPackageLib
                 throw new Exception($"{tableClass.Name} does not seem to be a valid PgModel Table, the class may be missing the [Table] attribute or may have not initialized properly");
             }
         }
+
         
+
+        protected static Dictionary<Type, HasOne[]> cachedHasOneRelations { get; set; } = new Dictionary<Type, HasOne[]> { };
+        public static void AddHasOneRelation(Type tableClass, HasOne hasOne)
+        {
+            List<HasOne> hasOneList = cachedHasOneRelations.ContainsKey(tableClass) ? cachedHasOneRelations[tableClass].ToList() : new List<HasOne> { };
+            hasOneList.Add(hasOne);
+            cachedHasOneRelations[tableClass] = hasOneList.ToArray();
+        }
+
+
+
+        protected static Dictionary<Type, HasMany[]> cachedHasManyRelations { get; set; } = new Dictionary<Type, HasMany[]> { };
+        public static void AddHasManyRelation(Type tableClass, HasMany hasMany)
+        {
+            List<HasMany> hasManyList = cachedHasManyRelations.ContainsKey(tableClass) ? cachedHasManyRelations[tableClass].ToList() : new List<HasMany> { };
+            hasManyList.Add(hasMany);
+            cachedHasManyRelations[tableClass] = hasManyList.ToArray();
+        }
+    }
+    public class PgModel<ChildClass> : PgModel where ChildClass : new()
+    {
+        [Column(OverrideType = "SERIAL PRIMARY KEY")]
+        public int id { get; set; }
+
+        public static Table GetTable()
+        {
+            return GetTable(typeof(ChildClass));
+        }
+        public static string GetTableName()
+        {
+            return GetTableName(typeof(ChildClass));
+        }
         public static Column[] GetColumns()
         {
             return GetColumns(typeof(ChildClass));
         }
-
         public static HasOne[] GetHasOneRelations(Type tableClass)
         {
             if (cachedHasOneRelations.ContainsKey(tableClass)) { return cachedHasOneRelations[tableClass]; }
@@ -96,16 +110,9 @@ namespace PgPackageLib
             return GetHasManyRelations(typeof(ChildClass));
         }
 
-        public static string GetTableName(Type type)
-        {
-            Table table = GetTable(type);
-            return table.TableName != null ? table.TableName : type.Name;
-        }
 
-        public static string GetTableName()
-        {
-            return GetTableName(typeof(ChildClass));
-        }
+
+        
 
         public static Column GetColumn(PropertyInfo property)
         {
@@ -120,16 +127,14 @@ namespace PgPackageLib
         {
             string commandString = $"DROP TABLE IF EXISTS {GetTableName()} CASCADE;";
             Psql.ExecuteCommand(commandString);
-            
         }
 
         public static void DropAllTables()
         {
             foreach (Table table in GetAllTables())
             {
-                string commandString = $"DROP TABLE IF EXISTS {GetTableName(table.type)} CASCADE;";
+                string commandString = $"DROP TABLE IF EXISTS {table.dbTableName} CASCADE;";
                 Psql.ExecuteCommand(commandString);
-            
             }
         }
 
