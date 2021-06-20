@@ -9,7 +9,7 @@ using static PgPackageLib.PgQuery;
 
 namespace PgPackageLib
 {
-    public class PgModelBase
+    public class PgModel
     {
         public static bool autoSave = false;
         protected static Dictionary<Type, Table> cachedTables { get; set; } = new Dictionary<Type, Table> { };
@@ -45,7 +45,7 @@ namespace PgPackageLib
         }
 
     }
-    public class PgModel<ChildClass> : PgModelBase where ChildClass : new()
+    public class PgModel<ChildClass> : PgModel where ChildClass : new()
     {
         [Column(OverrideType = "SERIAL PRIMARY KEY")]
         public int id { get; set; }

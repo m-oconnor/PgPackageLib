@@ -91,10 +91,10 @@ namespace PgPackageLib
                         {
                             throw new Exception($"missing RelationTargetTable for {type.Name} hasone relation on {hasOne.RelationTargetTable.Name}.{relationTargetPropertyName}");
                         }
-                        PgModelBase.AddHasOneRelation(type, hasOne);
+                        PgModel.AddHasOneRelation(type, hasOne);
                     }
                 }
-                PgModelBase.SetColumns(type, columns.ToArray());
+                PgModel.SetColumns(type, columns.ToArray());
                 foreach (HasMany hasMany in hasManys)
                 {
                     hasMany.table = table;
@@ -104,9 +104,9 @@ namespace PgPackageLib
                     if (onProperty == null) { throw new Exception($"invalid OnPropertyName ({onPropertyName}) for hasmany relation on {type.Name}"); }
                     Column onColumn = PgModel<Object>.GetColumns(type).Single(col => col.property == onProperty);
                     hasMany.onColumn = onColumn;
-                    PgModelBase.AddHasManyRelation(type, hasMany);
+                    PgModel.AddHasManyRelation(type, hasMany);
                 }
-                PgModelBase.SetTable(type, table);
+                PgModel.SetTable(type, table);
             }
 
             // iterate a second time to make sure all of the columns are seeded before we add the more complicated has many stuff

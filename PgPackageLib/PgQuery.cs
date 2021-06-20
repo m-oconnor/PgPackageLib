@@ -319,7 +319,7 @@ namespace PgPackageLib
         // /////////////////////////////////////////////
         public static void EnsureTablesExist()
         {
-            foreach (Table table in PgModelBase.GetAllTables())
+            foreach (Table table in PgModel.GetAllTables())
             {
                 Type type = table.type;
                 string tableName = (String)type.GetMethod("GetTableName").Invoke(null, null);
@@ -350,7 +350,7 @@ namespace PgPackageLib
         }
         public static void EnsureConstraintsAndIndexesExist()
         {
-            foreach (Table table in PgModelBase.GetAllTables())
+            foreach (Table table in PgModel.GetAllTables())
             {
                 Type type = table.type;
                 string tableName = (String)type.GetMethod("GetTableName").Invoke(null, null);
