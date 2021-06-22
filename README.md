@@ -117,7 +117,7 @@ public OtherClass OtherClass
 }
 ...
 ClassName className = ClassName.Find(1);
-OtherClass = className.OtherClass;
+OtherClass otherClass = className.OtherClass;
 ```
 
 # Advanced
