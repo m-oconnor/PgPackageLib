@@ -57,7 +57,7 @@ The attribute tags have more advanced features as well.
 TableName: define an alternate table name for the associated table in postgres.
 ### [Column]
 ```C#
-[Column(ColumnName="SomeName"]
+[Column(ColumnName="SomeName")]
 ...
 [Column(OverrideType="VARCHAR(64)"]
 ...
